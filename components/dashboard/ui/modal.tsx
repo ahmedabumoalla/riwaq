@@ -29,7 +29,7 @@ export function Modal({ open, title, onClose, children, footer, panelClassName }
         aria-labelledby="modal-title"
         className={
           panelClassName ??
-          "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/90 bg-white shadow-2xl shadow-riwaq-brown/20"
+          "scrollbar-none relative z-10 max-h-[min(90dvh,720px)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-white/90 bg-white shadow-2xl shadow-riwaq-brown/20"
         }
       >
         <div className="flex items-start justify-between gap-3 border-b border-riwaq-beige/90 px-6 py-4">

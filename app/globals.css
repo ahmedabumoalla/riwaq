@@ -22,3 +22,29 @@ body {
   color: var(--foreground);
   font-family: var(--font-tajawal), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* إخفاء شريط التمرير مع الإبقاء على التمرير — لا تستخدم @utility مع pseudo لأن Tailwind v4 يرفض الاسم */
+@layer utilities {
+  .scrollbar-none,
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar,
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass-card {
+    border-radius: 1.5rem;
+    border: 1px solid rgb(255 255 255 / 0.8);
+    background-color: rgb(255 255 255 / 0.75);
+    box-shadow: 0 10px 15px -3px rgb(59 36 22 / 0.08), 0 4px 6px -4px rgb(59 36 22 / 0.06);
+    backdrop-filter: blur(20px);
+  }
+
+  .touch-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}

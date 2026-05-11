@@ -2,10 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { redirectByRole } from "@/lib/auth/redirect-by-role";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -19,7 +16,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = await cookies();
-    const supabase = createServerClient(normalizeSupabaseUrl(url), anon, {
+    const supabase = createServerClient(normalizeSupabaseProjectUrl(url), anon, {
       cookies: {
         getAll() {
           return cookieStore.getAll();

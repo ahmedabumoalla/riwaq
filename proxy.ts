@@ -1,11 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { redirectByRole } from "@/lib/auth/redirect-by-role";
-import { isStaffRole } from "@/lib/types/roles";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
+import { isCafeDashboardRole, isStaffRole } from "@/lib/types/roles";
 
 export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,7 +15,7 @@ export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
 
   const supabase = createServerClient(
-    normalizeSupabaseUrl(supabaseUrl),
+    normalizeSupabaseProjectUrl(supabaseUrl),
     supabaseAnonKey,
     {
       cookies: {
@@ -59,7 +56,30 @@ export async function proxy(request: NextRequest) {
     return cachedRole;
   }
 
-  // dashboard
+  // platform admin
+  if (pathname.startsWith("/platform-admin")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+
+    const role = await getRole();
+
+    if (role === "platform_admin") {
+      return response;
+    }
+
+    if (role === "customer") {
+      return NextResponse.redirect(new URL("/customer", request.url));
+    }
+
+    if (isCafeDashboardRole(role)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/customer", request.url));
+  }
+
+  // dashboard (كافيه — ليس مسؤول المنصة)
   if (pathname.startsWith("/dashboard")) {
     if (!user) {
       return NextResponse.redirect(
@@ -73,7 +93,11 @@ export async function proxy(request: NextRequest) {
       return response;
     }
 
-    if (!isStaffRole(role)) {
+    if (role === "platform_admin") {
+      return NextResponse.redirect(new URL("/platform-admin", request.url));
+    }
+
+    if (!isCafeDashboardRole(role)) {
       return NextResponse.redirect(
         new URL("/customer", request.url)
       );
@@ -112,5 +136,6 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/customer/:path*",
+    "/platform-admin/:path*",
   ],
 };

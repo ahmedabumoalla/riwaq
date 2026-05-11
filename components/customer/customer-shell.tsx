@@ -1,6 +1,15 @@
 "use client";
 
-import { Bell, CalendarHeart, Coffee, Home, type LucideIcon, Sparkles, UserRound } from "lucide-react";
+import {
+  Bell,
+  CalendarHeart,
+  Coffee,
+  Home,
+  type LucideIcon,
+  MapPinned,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -23,10 +32,13 @@ const bottomNav: NavDef[] = [
 ];
 
 const desktopMore: { href: string; label: string }[] = [
+  { href: "/customer/map", label: "خريطة قريبة" },
   { href: "/customer/explore", label: "استكشف" },
+  { href: "/customer/explore/map", label: "خريطة الاستكشاف" },
   { href: "/customer/orders", label: "طلباتي" },
   { href: "/customer/rewards", label: "مكافآتي" },
   { href: "/customer/community", label: "المجتمع" },
+  { href: "/customer/community/create", label: "منشور جديد" },
   { href: "/customer/share", label: "شارك تجربتك" },
 ];
 
@@ -40,7 +52,7 @@ export function CustomerShell({ children, user }: { children: React.ReactNode; u
 
   return (
     <CustomerSessionProvider value={{ displayName: user.fullName, loyaltyPoints: user.loyaltyPoints }}>
-      <div className="min-h-screen bg-linear-to-b from-riwaq-cream via-white to-riwaq-cream/90 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-10">
+      <div className="min-h-screen min-w-0 overflow-x-clip bg-linear-to-b from-riwaq-cream via-white to-riwaq-cream/90 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-10">
         <header className="sticky top-0 z-40 border-b border-riwaq-beige/90 bg-white/92 backdrop-blur-lg">
           <div className="mx-auto flex max-w-lg flex-col gap-3 px-4 py-4 lg:max-w-6xl lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center justify-between gap-3 lg:justify-start lg:gap-4">
@@ -111,7 +123,43 @@ export function CustomerShell({ children, user }: { children: React.ReactNode; u
           </nav>
         </header>
 
-        <main className="mx-auto w-full max-w-lg px-4 py-6 lg:max-w-6xl lg:px-8">{children}</main>
+        <div className="scrollbar-none border-b border-riwaq-beige/70 bg-white/85 lg:hidden">
+          <div className="scrollbar-none mx-auto flex max-w-lg gap-2 overflow-x-auto px-4 py-2.5">
+            <Link
+              href="/customer/map"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-riwaq-caramel/12 px-3 py-2 text-xs font-extrabold text-riwaq-brown ring-1 ring-riwaq-caramel/25"
+            >
+              <MapPinned className="h-3.5 w-3.5 text-riwaq-caramel" aria-hidden />
+              خريطة
+            </Link>
+            <Link
+              href="/customer/explore"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-riwaq-cream/80 px-3 py-2 text-xs font-extrabold text-riwaq-brown ring-1 ring-riwaq-beige"
+            >
+              استكشف
+            </Link>
+            <Link
+              href="/customer/community"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-riwaq-cream/80 px-3 py-2 text-xs font-extrabold text-riwaq-brown ring-1 ring-riwaq-beige"
+            >
+              مجتمع
+            </Link>
+            <Link
+              href="/customer/community/create"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-riwaq-brown px-3 py-2 text-xs font-extrabold text-white shadow-sm"
+            >
+              + منشور
+            </Link>
+            <Link
+              href="/customer/share"
+              className="inline-flex shrink-0 items-center rounded-2xl bg-riwaq-cream/80 px-3 py-2 text-xs font-extrabold text-riwaq-brown ring-1 ring-riwaq-beige"
+            >
+              شارك
+            </Link>
+          </div>
+        </div>
+
+        <main className="mx-auto w-full min-w-0 max-w-lg px-4 py-6 lg:max-w-6xl lg:px-8">{children}</main>
 
         <nav
           className="fixed bottom-0 inset-x-0 z-50 border-t border-riwaq-beige/90 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden"

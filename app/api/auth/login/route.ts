@@ -1,10 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { redirectByRole } from "@/lib/auth/redirect-by-role";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   const cookiesToSet: { name: string; value: string; options?: any }[] = [];
 
-  const supabase = createServerClient(normalizeSupabaseUrl(url), anon, {
+  const supabase = createServerClient(normalizeSupabaseProjectUrl(url), anon, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -35,10 +32,34 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  let signInData: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["data"];
+  let signInError: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>["error"];
+
+  try {
+    const result = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    signInData = result.data;
+    signInError = result.error;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const lower = msg.toLowerCase();
+    const looksLikeNetwork =
+      lower.includes("fetch failed") ||
+      lower.includes("failed to fetch") ||
+      err instanceof TypeError;
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: looksLikeNetwork
+          ? "تعذر الاتصال بـ Supabase. تحقق من رابط المشروع والمفاتيح."
+          : msg,
+      },
+      { status: looksLikeNetwork ? 503 : 500 },
+    );
+  }
 
   if (signInError || !signInData.user) {
     return NextResponse.json(
@@ -73,4 +94,3 @@ export async function POST(request: NextRequest) {
 
   return response;
 }
-

@@ -31,6 +31,18 @@ export const STAFF_ROLES: PlatformRole[] = [
   "barista",
 ];
 
+/** أدوار تدخل لوحة تشغيل الكافيه (ليست إدارة المنصة). */
+export const CAFE_DASHBOARD_ROLES: readonly string[] = [
+  "cafe_owner",
+  "branch_manager",
+  "cashier",
+  "barista",
+];
+
 export function isStaffRole(role: string | null | undefined): role is Exclude<PlatformRole, "customer"> {
   return role != null && role !== "customer" && (STAFF_ROLES as readonly string[]).includes(role);
+}
+
+export function isCafeDashboardRole(role: string | null | undefined): boolean {
+  return role != null && CAFE_DASHBOARD_ROLES.includes(role);
 }

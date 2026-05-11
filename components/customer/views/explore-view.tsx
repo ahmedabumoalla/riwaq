@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { Clock, MapPin, Star, Users } from "lucide-react";
+import { Clock, MapPin, MapPinned, Star, Users } from "lucide-react";
 import { mockExploreCafe } from "@/lib/mock/customer-app";
 
 export function CustomerExploreView() {
   const c = mockExploreCafe;
 
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-[1.75rem] shadow-xl ring-1 ring-riwaq-beige/90">
+    <div className="min-w-0 space-y-6">
+      <section className="overflow-hidden rounded-3xl shadow-xl ring-1 ring-riwaq-beige/90">
         <div className="relative h-44 bg-linear-to-br from-riwaq-caramel/30 via-riwaq-beige to-sky-100">
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="rounded-full bg-white/85 px-4 py-2 text-xs font-extrabold text-riwaq-brown shadow-md ring-1 ring-riwaq-beige">
@@ -77,14 +77,21 @@ export function CustomerExploreView() {
 
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
+              href="/customer/explore/map"
+              className="inline-flex min-h-12 flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-2xl border border-riwaq-caramel/40 bg-riwaq-caramel/10 px-4 text-sm font-extrabold text-riwaq-brown shadow-sm hover:bg-riwaq-caramel/20"
+            >
+              <MapPinned className="h-4 w-4 shrink-0 text-riwaq-caramel" aria-hidden />
+              خريطة قريبة
+            </Link>
+            <Link
               href="/customer/menu"
-              className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-2xl bg-riwaq-brown px-5 py-3 text-sm font-extrabold text-white shadow-lg hover:brightness-105"
+              className="inline-flex min-h-12 flex-1 min-w-[8rem] items-center justify-center rounded-2xl bg-riwaq-brown px-5 text-sm font-extrabold text-white shadow-lg hover:brightness-105"
             >
               عرض المنيو
             </Link>
             <Link
               href="/customer/reservations"
-              className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-2xl border border-riwaq-beige bg-white px-5 py-3 text-sm font-extrabold text-riwaq-brown shadow-sm hover:bg-riwaq-cream/70"
+              className="inline-flex min-h-12 flex-1 min-w-[8rem] items-center justify-center rounded-2xl border border-riwaq-beige bg-white px-5 text-sm font-extrabold text-riwaq-brown shadow-sm hover:bg-riwaq-cream/70"
             >
               حجز طاولة
             </Link>

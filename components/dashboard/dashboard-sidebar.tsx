@@ -8,8 +8,10 @@ import {
   Coffee,
   Gift,
   LayoutDashboard,
+  MapPinned,
   Megaphone,
   Menu,
+  MessagesSquare,
   Settings,
   ShoppingBag,
   Users,
@@ -34,6 +36,8 @@ const navItems: NavItem[] = [
   { href: "/dashboard/tables", label: "الطاولات", icon: Armchair },
   { href: "/dashboard/loyalty", label: "الولاء", icon: Gift },
   { href: "/dashboard/campaigns", label: "الحملات", icon: Megaphone },
+  { href: "/dashboard/community", label: "المجتمع", icon: MessagesSquare },
+  { href: "/dashboard/map-insights", label: "رؤية الخريطة", icon: MapPinned },
   { href: "/dashboard/employees", label: "الموظفون", icon: Users },
   { href: "/dashboard/customers", label: "العملاء", icon: UserSquare2 },
   { href: "/dashboard/reports", label: "التقارير", icon: BarChart3 },
@@ -90,7 +94,7 @@ export function DashboardSidebar({ mobileOpen, onMobileClose }: DashboardSidebar
         </button>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+      <nav className="scrollbar-none flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {navItems.map(({ href, label, icon: Icon, exact }) => {
           const active = isActive(pathname, href, exact);
           return (

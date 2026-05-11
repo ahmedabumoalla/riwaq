@@ -274,22 +274,5 @@ export const shareLeaderboardMock = [
   { name: "نورة العجمي", views: "٤٨ ألف", reward: "٦٢٠ نقطة", platform: "Snapchat" },
 ];
 
-export const communityMock = {
-  posts: [
-    {
-      id: "p1",
-      author: "فيصل",
-      text: "أفضل لاتيه بندق جربته هذا الأسبوع ☕️",
-      likes: 124,
-    },
-    {
-      id: "p2",
-      author: "دانة",
-      text: "جلسة رووف مع الغروب لا تُنسى — أنصح بالحجز المسبق",
-      likes: 89,
-    },
-  ],
-  polls: [{ q: "ما أفضل وقت للزيارة؟", options: ["بعد الظهر", "مساءً", "وقت الغروب"], votes: 420 }],
-  cafeAnnouncement: "تحدي الأسبوع: صوّر قهوتك مع هاشتاق #رواق_الواجهة واربح نقاطًا إضافية.",
-  challenges: ["صور قهوتك", "أفضل طاولة لديك", "تجربة الأسبوع"],
-};
+/** @deprecated استخدم `@/lib/mock/community` */
+export { communitySidebarMeta as communityMock } from "./community";

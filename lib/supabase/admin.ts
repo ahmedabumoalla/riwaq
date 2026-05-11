@@ -1,8 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 /**
  * عميل بصلاحية service_role — للاستخدام في Route Handlers / Server Actions فقط.
@@ -16,7 +13,7 @@ export function createAdminClient() {
   if (!url || !serviceRole) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   }
-  return createClient(normalizeSupabaseUrl(url), serviceRole, {
+  return createClient(normalizeSupabaseProjectUrl(url), serviceRole, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

@@ -1,8 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 /**
  * عميل Supabase للمتصفح — يستخدم anon key فقط.
@@ -14,5 +11,5 @@ export function createClient() {
   if (!url || !anon) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
   }
-  return createBrowserClient(normalizeSupabaseUrl(url), anon);
+  return createBrowserClient(normalizeSupabaseProjectUrl(url), anon);
 }

@@ -17,6 +17,8 @@ const titles: Record<string, { title: string; subtitle?: string }> = {
   "/dashboard/customers": { title: "العملاء", subtitle: "Customer Intelligence Center" },
   "/dashboard/reports": { title: "التقارير", subtitle: "تحليلات تشغيلية" },
   "/dashboard/settings": { title: "الإعدادات", subtitle: "الفرع والمتجر" },
+  "/dashboard/community": { title: "مجتمع الكوفي", subtitle: "منشورات وولاء وتفاعل" },
+  "/dashboard/map-insights": { title: "رؤية الخريطة", subtitle: "موقعك مقابل السوق" },
 };
 
 function titleForPath(pathname: string) {
@@ -48,7 +50,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [mobileNavOpen]);
 
   return (
-    <div className="min-h-screen bg-riwaq-cream lg:pr-[19rem]">
+    <div className="min-h-screen min-w-0 overflow-x-clip bg-riwaq-cream lg:pr-[19rem]">
       <button
         type="button"
         aria-label="إغلاق القائمة"
@@ -67,7 +69,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           subtitle={header.subtitle}
           onMenuOpen={() => setMobileNavOpen(true)}
         />
-        <div className="flex-1">{children}</div>
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
   );

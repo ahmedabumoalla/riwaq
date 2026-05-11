@@ -1,9 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-
-function normalizeSupabaseUrl(raw: string) {
-  return raw.replace(/\/rest\/v1\/?$/, "");
-}
+import { normalizeSupabaseProjectUrl } from "@/lib/supabase/project-url";
 
 export async function GET(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const cookiesToSet: { name: string; value: string; options?: any }[] = [];
 
-  const supabase = createServerClient(normalizeSupabaseUrl(url), anon, {
+  const supabase = createServerClient(normalizeSupabaseProjectUrl(url), anon, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -58,4 +55,3 @@ export async function GET(request: NextRequest) {
   cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
   return response;
 }
-

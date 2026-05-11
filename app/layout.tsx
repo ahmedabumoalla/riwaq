@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 const tajawal = Tajawal({
   subsets: ["arabic"],
@@ -26,7 +27,7 @@ export default function RootLayout({
       dir="rtl"
       className={`${tajawal.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-medium text-riwaq-brown bg-riwaq-cream">
+      <body className="min-h-0 min-h-full min-w-0 flex flex-col overflow-x-clip font-medium text-riwaq-brown bg-riwaq-cream">
         {children}
       </body>
     </html>
