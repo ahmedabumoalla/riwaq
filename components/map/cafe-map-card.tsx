@@ -28,6 +28,11 @@ export function CafeMapCard({ cafe, distanceKm }: { cafe: MapCafe; distanceKm: n
       <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-extrabold">
         <span className="rounded-full bg-riwaq-cream px-2 py-0.5 text-riwaq-brown ring-1 ring-riwaq-beige">⭐ {cafe.rating.toFixed(1)}</span>
         <span className="rounded-full bg-riwaq-cream px-2 py-0.5 text-riwaq-muted ring-1 ring-riwaq-beige">{crowdAr(cafe.crowd)}</span>
+        {cafe.isOpenNow === false ? (
+          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-800 ring-1 ring-rose-200">مغلق الآن</span>
+        ) : (
+          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 ring-1 ring-emerald-200">مفتوح الآن</span>
+        )}
         {cafe.tablesAvailableNow ? (
           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 ring-1 ring-emerald-200">طاولات متاحة</span>
         ) : null}
@@ -55,7 +60,7 @@ export function CafeMapCard({ cafe, distanceKm }: { cafe: MapCafe; distanceKm: n
           المنيو
         </Link>
         <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${cafe.lat},${cafe.lng}`}
+          href={cafe.googleMapsUrl ?? `https://www.google.com/maps/search/?api=1&query=${cafe.lat},${cafe.lng}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-riwaq-beige bg-riwaq-cream/50 text-xs font-extrabold text-riwaq-brown hover:bg-riwaq-beige/60"
@@ -65,7 +70,7 @@ export function CafeMapCard({ cafe, distanceKm }: { cafe: MapCafe; distanceKm: n
         </a>
       </div>
       <p className="mt-3 text-[10px] font-bold text-riwaq-muted">
-        <Compass className="inline h-3 w-3 text-riwaq-caramel" aria-hidden /> جاهز لاحقًا لـ Mapbox — الإحداثيات حقيقية في الـ mock
+        <Compass className="inline h-3 w-3 text-riwaq-caramel" aria-hidden /> الاتجاهات متاحة عبر Google Maps
       </p>
     </div>
   );

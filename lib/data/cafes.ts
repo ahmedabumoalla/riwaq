@@ -1,14 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { withMockFallback, type DataResult } from "@/lib/data/supabase-helpers";
+import { buildDirectionsUrl, isCafeOpenNow, toHoursLabel } from "@/lib/data/map-cafes";
 import type { DataLoad } from "@/lib/types/data-load";
 import { mapSupabaseError } from "@/lib/types/data-load";
 import {
   mapCafes as mockMapCafes,
   type MapCafe,
-  type CoffeeStyle,
-  type CrowdLevel,
   type PriceTier,
-  type ProductTag,
   type ViewType,
 } from "@/lib/mock/map-cafes";
 
@@ -16,60 +14,39 @@ type CafeRow = {
   id: string;
   name: string;
   slug: string | null;
-  region: string | null;
-  city: string | null;
-  lat: number | null;
-  lng: number | null;
-  rating: number | null;
-  review_count: number | null;
-  map_extras: Record<string, unknown> | null;
-  branches?: Array<{
-    id: string;
-    name: string;
+  description: string | null;
+  cover_url: string | null;
+  opening_hours: unknown;
+  general_discount_percent: number | null;
+  map_visibility: boolean | null;
+  location?: {
+    latitude: number | null;
+    longitude: number | null;
     city: string | null;
-    lat: number | null;
-    lng: number | null;
-    is_active: boolean | null;
-  }> | null;
+    district: string | null;
+    address: string | null;
+    google_maps_url: string | null;
+    view_types: string[] | null;
+    price_level: string | null;
+  } | null;
 };
 
-function defaultsFromExtras(ex: Record<string, unknown> | null | undefined): Partial<MapCafe> {
-  if (!ex || typeof ex !== "object") return {};
-  const g = <K extends keyof MapCafe>(k: K, d: MapCafe[K]): MapCafe[K] => (ex[k as string] as MapCafe[K]) ?? d;
-  return {
-    hoursLabel: g("hoursLabel", "٨ ص — ١٢ م"),
-    crowd: (ex.crowd as CrowdLevel) ?? "medium",
-    coffeeStyle: (ex.coffeeStyle as CoffeeStyle) ?? "mixed",
-    productTags: (ex.productTags as ProductTag[]) ?? ["specialty_coffee"],
-    viewTypes: (ex.viewTypes as ViewType[]) ?? ["interior"],
-    priceTier: (ex.priceTier as PriceTier) ?? "mid",
-    tablesAvailableNow: Boolean(ex.tablesAvailableNow),
-    hasPartition: Boolean(ex.hasPartition),
-    hasHeater: Boolean(ex.hasHeater),
-    hasScreen: Boolean(ex.hasScreen),
-    activeOffers: Boolean(ex.activeOffers),
-    loyaltyPointsHigh: Boolean(ex.loyaltyPointsHigh),
-    workStudyFriendly: ex.workStudyFriendly !== false,
-    familyFriendly: ex.familyFriendly !== false,
-    heroImage: (ex.heroImage as string) ?? "/og-image.png",
-    tagline: (ex.tagline as string) ?? "",
-    address: (ex.address as string) ?? "",
-    menuHighlights: (ex.menuHighlights as string[]) ?? [],
-    tableLabels: (ex.tableLabels as string[]) ?? [],
-    promos: (ex.promos as string[]) ?? [],
-    loyaltySnippet: (ex.loyaltySnippet as string) ?? "",
-    communityPreview: (ex.communityPreview as MapCafe["communityPreview"]) ?? [],
-    reviews: (ex.reviews as MapCafe["reviews"]) ?? [],
-  };
-}
-
 function mapRowToMapCafe(row: CafeRow): MapCafe {
-  const b = row.branches?.find((x) => x.lat != null && x.lng != null) ?? row.branches?.[0];
-  const lat = Number(row.lat ?? b?.lat ?? 24.7);
-  const lng = Number(row.lng ?? b?.lng ?? 46.67);
-  const ex = defaultsFromExtras(row.map_extras);
-  const city = row.city ?? b?.city ?? "—";
-  const region = row.region ?? city;
+  const loc = row.location ?? null;
+  const lat = Number(loc?.latitude ?? 24.7);
+  const lng = Number(loc?.longitude ?? 46.67);
+  const city = loc?.city ?? "—";
+  const region = city;
+  const vts = loc?.view_types ?? [];
+  const viewTypes = (vts.filter((v) =>
+    ["interior", "outdoor", "roof", "mountain", "sea", "garden"].includes(v)
+  ) as ViewType[]) || [];
+  const priceTier: PriceTier =
+    loc?.price_level === "budget" || loc?.price_level === "mid" || loc?.price_level === "premium"
+      ? loc.price_level
+      : "mid";
+  const isOpenNow = isCafeOpenNow(row.opening_hours);
+  const directionsUrl = buildDirectionsUrl(loc?.google_maps_url, lat, lng);
 
   return {
     id: row.id,
@@ -79,31 +56,36 @@ function mapRowToMapCafe(row: CafeRow): MapCafe {
     city,
     lat,
     lng,
-    rating: Number(row.rating ?? 4.5),
-    reviewCount: row.review_count ?? 0,
-    hoursLabel: ex.hoursLabel ?? "٨ ص — ١٢ م",
-    crowd: ex.crowd ?? "medium",
-    coffeeStyle: ex.coffeeStyle ?? "mixed",
-    productTags: ex.productTags ?? ["specialty_coffee"],
-    viewTypes: ex.viewTypes ?? ["interior"],
-    priceTier: ex.priceTier ?? "mid",
-    tablesAvailableNow: ex.tablesAvailableNow ?? false,
-    hasPartition: ex.hasPartition ?? false,
-    hasHeater: ex.hasHeater ?? false,
-    hasScreen: ex.hasScreen ?? false,
-    activeOffers: ex.activeOffers ?? false,
-    loyaltyPointsHigh: ex.loyaltyPointsHigh ?? false,
-    workStudyFriendly: ex.workStudyFriendly ?? true,
-    familyFriendly: ex.familyFriendly ?? true,
-    heroImage: ex.heroImage ?? "/og-image.png",
-    tagline: ex.tagline ?? row.name,
-    address: ex.address ?? `${city}`,
-    menuHighlights: ex.menuHighlights ?? [],
-    tableLabels: ex.tableLabels ?? (b?.name ? [b.name] : []),
-    promos: ex.promos ?? [],
-    loyaltySnippet: ex.loyaltySnippet ?? "",
-    communityPreview: ex.communityPreview ?? [],
-    reviews: ex.reviews ?? [],
+    rating: 4.5,
+    reviewCount: 0,
+    hoursLabel: toHoursLabel(row.opening_hours),
+    crowd: "medium",
+    coffeeStyle: "mixed",
+    productTags: ["specialty_coffee"],
+    viewTypes: viewTypes.length ? viewTypes : ["interior"],
+    priceTier,
+    tablesAvailableNow: isOpenNow,
+    hasPartition: false,
+    hasHeater: false,
+    hasScreen: false,
+    activeOffers: Number(row.general_discount_percent ?? 0) > 0,
+    loyaltyPointsHigh: false,
+    workStudyFriendly: true,
+    familyFriendly: true,
+    heroImage: row.cover_url ?? "/og-image.png",
+    tagline: row.description ?? row.name,
+    address: loc?.address ?? [loc?.district, city].filter(Boolean).join("، "),
+    menuHighlights: [],
+    tableLabels: [],
+    promos:
+      Number(row.general_discount_percent ?? 0) > 0
+        ? [`خصم عام ${Number(row.general_discount_percent).toLocaleString("ar-SA")}%`]
+        : [],
+    loyaltySnippet: "",
+    communityPreview: [],
+    reviews: [],
+    googleMapsUrl: directionsUrl,
+    isOpenNow,
   };
 }
 
@@ -113,31 +95,36 @@ function firstRel<T>(v: T | T[] | null | undefined): T | null {
 }
 
 type CafeLocJoin = {
-  id: string;
-  lat: number;
-  lng: number;
-  label: string | null;
   cafe_id: string;
+  latitude: number | null;
+  longitude: number | null;
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  google_maps_url: string | null;
+  is_visible: boolean | null;
+  view_types: string[] | null;
+  price_level: string | null;
   cafes:
     | {
         id: string;
         name: string;
         slug: string | null;
-        region: string | null;
-        city: string | null;
-        rating: number | null;
-        review_count: number | null;
-        map_extras: Record<string, unknown> | null;
+        description: string | null;
+        cover_url: string | null;
+        opening_hours: unknown;
+        general_discount_percent: number | null;
+        map_visibility: boolean | null;
       }
     | {
         id: string;
         name: string;
         slug: string | null;
-        region: string | null;
-        city: string | null;
-        rating: number | null;
-        review_count: number | null;
-        map_extras: Record<string, unknown> | null;
+        description: string | null;
+        cover_url: string | null;
+        opening_hours: unknown;
+        general_discount_percent: number | null;
+        map_visibility: boolean | null;
       }[]
     | null;
 };
@@ -147,8 +134,10 @@ export async function loadMapCafesFromLocations(supabase: SupabaseClient): Promi
   try {
     const { data, error } = await supabase
       .from("cafe_locations")
-      .select("id, lat, lng, label, cafe_id, cafes(id, name, slug, region, city, rating, review_count, map_extras)")
-      .order("sort_order", { ascending: true })
+      .select(
+        "cafe_id, latitude, longitude, city, district, address, google_maps_url, is_visible, view_types, price_level, cafes(id, name, slug, description, cover_url, opening_hours, general_discount_percent, map_visibility)",
+      )
+      .eq("is_visible", true)
       .limit(20);
 
     if (error) return { status: "error", message: error.message };
@@ -156,21 +145,29 @@ export async function loadMapCafesFromLocations(supabase: SupabaseClient): Promi
 
     const mapped = (data as CafeLocJoin[]).map((loc) => {
       const c = firstRel(loc.cafes);
-      if (!c) return null;
+      if (!c || c.map_visibility === false) return null;
       const row: CafeRow = {
         id: c.id,
         name: c.name,
         slug: c.slug,
-        region: c.region,
-        city: c.city,
-        lat: loc.lat,
-        lng: loc.lng,
-        rating: c.rating,
-        review_count: c.review_count,
-        map_extras: c.map_extras,
-        branches: null,
+        description: c.description,
+        cover_url: c.cover_url,
+        opening_hours: c.opening_hours,
+        general_discount_percent: c.general_discount_percent,
+        map_visibility: c.map_visibility,
+        location: {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          city: loc.city,
+          district: loc.district,
+          address: loc.address,
+          google_maps_url: loc.google_maps_url,
+          view_types: loc.view_types,
+          price_level: loc.price_level,
+        },
       };
-      return mapRowToMapCafe(row);
+      const mappedCafe = mapRowToMapCafe(row);
+      return mappedCafe.isOpenNow ? mappedCafe : null;
     });
 
     const list = mapped.filter(Boolean) as MapCafe[];
@@ -192,15 +189,44 @@ export async function loadMapCafesFromLocations(supabase: SupabaseClient): Promi
 export async function listMapCafes(supabase: SupabaseClient): Promise<DataResult<MapCafe[]>> {
   return withMockFallback("cafes.listMap", mockMapCafes, async () => {
     const { data, error } = await supabase
-      .from("cafes")
+      .from("cafe_locations")
       .select(
-        "id, name, slug, region, city, lat, lng, rating, review_count, map_extras, branches(id, name, city, lat, lng, is_active)",
+        "cafe_id, latitude, longitude, city, district, address, google_maps_url, is_visible, view_types, price_level, cafes(id, name, slug, description, cover_url, opening_hours, general_discount_percent, map_visibility)",
       )
+      .eq("is_visible", true)
       .limit(20);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };
-    return { data: (data as unknown as CafeRow[]).map(mapRowToMapCafe), error: null };
+    const list = (data as CafeLocJoin[])
+      .map((loc) => {
+        const c = firstRel(loc.cafes);
+        if (!c || c.map_visibility === false) return null;
+        const row: CafeRow = {
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          cover_url: c.cover_url,
+          opening_hours: c.opening_hours,
+          general_discount_percent: c.general_discount_percent,
+          map_visibility: c.map_visibility,
+          location: {
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            city: loc.city,
+            district: loc.district,
+            address: loc.address,
+            google_maps_url: loc.google_maps_url,
+            view_types: loc.view_types,
+            price_level: loc.price_level,
+          },
+        };
+        const mappedCafe = mapRowToMapCafe(row);
+        return mappedCafe.isOpenNow ? mappedCafe : null;
+      })
+      .filter(Boolean) as MapCafe[];
+    return { data: list, error: null };
   });
 }
 
@@ -214,14 +240,49 @@ export async function getMapCafeByIdData(supabase: SupabaseClient, id: string): 
       const { data, error } = await supabase
         .from("cafes")
         .select(
-          "id, name, slug, region, city, lat, lng, rating, review_count, map_extras, branches(id, name, city, lat, lng, is_active)",
+          "id, name, slug, description, cover_url, opening_hours, general_discount_percent, map_visibility, cafe_locations(latitude, longitude, city, district, address, google_maps_url, is_visible, view_types, price_level)",
         )
         .eq("id", id)
         .maybeSingle();
 
       if (error) return { data: null, error };
       if (!data) return { data: null, error: null };
-      return { data: mapRowToMapCafe(data as unknown as CafeRow), error: null };
+      const row = data as unknown as {
+        id: string;
+        name: string;
+        slug: string | null;
+        description: string | null;
+        cover_url: string | null;
+        opening_hours: unknown;
+        general_discount_percent: number | null;
+        map_visibility: boolean | null;
+        cafe_locations:
+          | {
+              latitude: number | null;
+              longitude: number | null;
+              city: string | null;
+              district: string | null;
+              address: string | null;
+              google_maps_url: string | null;
+              is_visible: boolean | null;
+              view_types: string[] | null;
+              price_level: string | null;
+            }[]
+          | null;
+      };
+      const loc = row.cafe_locations?.find((x) => x.is_visible !== false) ?? row.cafe_locations?.[0] ?? null;
+      const mapped = mapRowToMapCafe({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        cover_url: row.cover_url,
+        opening_hours: row.opening_hours,
+        general_discount_percent: row.general_discount_percent,
+        map_visibility: row.map_visibility,
+        location: loc,
+      });
+      return { data: mapped, error: null };
     },
   );
 }

@@ -42,6 +42,8 @@ export type MapCafe = {
   loyaltySnippet: string;
   communityPreview: { author: string; excerpt: string }[];
   reviews: { author: string; text: string; rating: number }[];
+  googleMapsUrl?: string | null;
+  isOpenNow?: boolean;
 };
 
 /** مراكز مناطق يدوية عند رفض الموقع */

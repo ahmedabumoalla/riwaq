@@ -12,6 +12,7 @@ export type MapFilterState = {
   minRating: number;
   crowd: CrowdLevel | "all";
   tablesAvailableNow: "any" | "yes" | "no";
+  openNow: "any" | "yes" | "no";
   hasPartition: "any" | "yes" | "no";
   hasHeater: "any" | "yes" | "no";
   hasScreen: "any" | "yes" | "no";
@@ -32,6 +33,7 @@ export const defaultMapFilters: MapFilterState = {
   minRating: 0,
   crowd: "all",
   tablesAvailableNow: "any",
+  openNow: "any",
   hasPartition: "any",
   hasHeater: "any",
   hasScreen: "any",
@@ -287,6 +289,7 @@ export function CafeFilterPanel({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <TriToggle label="طاولات متاحة الآن" value={value.tablesAvailableNow} onChange={(v) => patch({ tablesAvailableNow: v })} />
+        <TriToggle label="مفتوح الآن" value={value.openNow} onChange={(v) => patch({ openNow: v })} />
         <TriToggle label="بارتيشن" value={value.hasPartition} onChange={(v) => patch({ hasPartition: v })} />
         <TriToggle label="دفاية" value={value.hasHeater} onChange={(v) => patch({ hasHeater: v })} />
         <TriToggle label="شاشة" value={value.hasScreen} onChange={(v) => patch({ hasScreen: v })} />
@@ -319,6 +322,8 @@ export function applyMapFilters(cafes: MapCafe[], f: MapFilterState): MapCafe[] 
     if (f.viewTypes.length && !f.viewTypes.some((v) => c.viewTypes.includes(v))) return false;
     if (f.tablesAvailableNow === "yes" && !c.tablesAvailableNow) return false;
     if (f.tablesAvailableNow === "no" && c.tablesAvailableNow) return false;
+    if (f.openNow === "yes" && c.isOpenNow === false) return false;
+    if (f.openNow === "no" && c.isOpenNow !== false) return false;
     if (f.hasPartition === "yes" && !c.hasPartition) return false;
     if (f.hasPartition === "no" && c.hasPartition) return false;
     if (f.hasHeater === "yes" && !c.hasHeater) return false;

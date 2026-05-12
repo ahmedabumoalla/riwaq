@@ -2,20 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Armchair, Clock, MapPin, Share2, Sparkles, Star, Users } from "lucide-react";
+import { DataEmptyState } from "@/components/ui/data-state";
+import { listCafePromotions } from "@/lib/data/cafe-promotions";
+import { getMapCafeByIdData } from "@/lib/data/cafes";
 import { distanceKm } from "@/lib/geo/haversine";
 import { postsByCafeId } from "@/lib/mock/community";
-import { getMapCafeById, manualRegionCenters, mapCafeIds } from "@/lib/mock/map-cafes";
+import { getMapCafeById, manualRegionCenters } from "@/lib/mock/map-cafes";
+import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/components/community/post-card";
 
 type Props = { params: Promise<{ id: string }> };
 
 export function generateStaticParams() {
-  return mapCafeIds.map((id) => ({ id }));
+  return [];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const c = getMapCafeById(id);
+  const supabase = await createClient();
+  const r = await getMapCafeByIdData(supabase, id);
+  const c = r.data ?? getMapCafeById(id);
   return { title: c ? c.name : "الكوفي" };
 }
 
@@ -33,8 +39,14 @@ function regionRef(cafeRegion: string) {
 
 export default async function PublicCafePage({ params }: Props) {
   const { id } = await params;
-  const cafe = getMapCafeById(id);
+  const supabase = await createClient();
+  const r = await getMapCafeByIdData(supabase, id);
+  const cafe = r.data ?? getMapCafeById(id);
   if (!cafe) notFound();
+  const promotions = await listCafePromotions(supabase, cafe.id, true);
+  const bannerPromotion = promotions.find((p) => p.promoType === "banner");
+  const latestPromotion = promotions.find((p) => p.promoType === "latest_products");
+  const contestPromotion = promotions.find((p) => p.promoType === "contest");
 
   const posts = postsByCafeId(cafe.id);
   const ref = regionRef(cafe.region);
@@ -42,6 +54,18 @@ export default async function PublicCafePage({ params }: Props) {
 
   return (
     <div className="min-w-0 space-y-8">
+      {bannerPromotion ? (
+        <section className="overflow-hidden rounded-3xl border border-riwaq-beige bg-white/90 shadow-sm">
+          {bannerPromotion.imageUrl ? (
+            <img src={bannerPromotion.imageUrl} alt={bannerPromotion.title} className="h-44 w-full object-cover" />
+          ) : null}
+          <div className="p-4">
+            <h2 className="text-lg font-extrabold text-riwaq-brown">{bannerPromotion.title || "إعلان"}</h2>
+            <p className="mt-1 text-sm font-bold text-riwaq-muted">{bannerPromotion.description}</p>
+          </div>
+        </section>
+      ) : null}
+
       <div className="overflow-hidden rounded-3xl border border-white/90 bg-white/90 shadow-xl ring-1 ring-riwaq-beige/80">
         <div className="relative aspect-[21/9] min-h-[160px] w-full bg-linear-to-br from-riwaq-beige/90 via-riwaq-cream to-riwaq-caramel/25">
           <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
@@ -149,6 +173,41 @@ export default async function PublicCafePage({ params }: Props) {
           <p className="mt-2 text-sm font-bold text-riwaq-muted">لا عروض نشطة حاليًا في البيانات التجريبية.</p>
         )}
       </section>
+
+      {latestPromotion ? (
+        <section className="rounded-3xl border border-white/90 bg-white/85 p-5 shadow-md backdrop-blur-xl sm:p-6">
+          <h2 className="text-lg font-extrabold text-riwaq-brown">{latestPromotion.title || "أحدث المنتجات"}</h2>
+          <p className="mt-2 text-sm font-bold text-riwaq-muted">{latestPromotion.description || "اكتشف أحدث إضافات المنيو."}</p>
+          {cafe.menuHighlights.length ? (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {cafe.menuHighlights.slice(0, 6).map((m) => (
+                <li key={m} className="rounded-2xl bg-riwaq-cream/50 px-3 py-2 text-sm font-bold text-riwaq-brown ring-1 ring-riwaq-beige/80">
+                  {m}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-3">
+              <DataEmptyState title="لا توجد منتجات مميزة" description="سيتم عرض أحدث المنتجات هنا عند إضافتها." />
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {contestPromotion ? (
+        <section className="rounded-3xl border border-white/90 bg-white/85 p-5 shadow-md backdrop-blur-xl sm:p-6">
+          <h2 className="text-lg font-extrabold text-riwaq-brown">{contestPromotion.title || "مسابقة"}</h2>
+          <p className="mt-2 text-sm font-bold text-riwaq-muted">
+            {contestPromotion.description || "شارك تجربتك في المجتمع للدخول في المسابقة الحالية."}
+          </p>
+          <Link
+            href="/customer/share"
+            className="mt-4 inline-flex rounded-2xl bg-riwaq-brown px-4 py-2 text-xs font-extrabold text-white"
+          >
+            شارك الآن
+          </Link>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">

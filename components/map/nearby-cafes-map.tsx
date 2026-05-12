@@ -2,11 +2,11 @@
 
 import { LocateFixed, MapPinned } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { CafeMapboxMap } from "@/components/map/cafe-mapbox-map";
+import { CafeGoogleMap } from "@/components/map/cafe-google-map";
 import { CafeFilterPanel, applyMapFilters, defaultMapFilters, type MapFilterState } from "@/components/map/cafe-filter-panel";
 import { CafeMapCard } from "@/components/map/cafe-map-card";
 import { distanceKm } from "@/lib/geo/haversine";
-import { getMapboxPublicToken } from "@/lib/map/mapbox-token";
+import { getGoogleMapsPublicKey } from "@/lib/map/google-maps-key";
 import { manualRegionCenters, mapCafes, type MapCafe } from "@/lib/mock/map-cafes";
 
 type NearbyCafesMapProps = {
@@ -67,7 +67,7 @@ export function NearbyCafesMap({ variant = "default", initialCafes }: NearbyCafe
   );
 
   const cafesForMap = useMemo(() => withDistance.map((x) => x.cafe), [withDistance]);
-  const mapboxToken = getMapboxPublicToken();
+  const googleMapsKey = getGoogleMapsPublicKey();
 
   return (
     <div className="space-y-6">
@@ -78,9 +78,9 @@ export function NearbyCafesMap({ variant = "default", initialCafes }: NearbyCafe
               {variant === "explore" ? "استكشاف على الخريطة" : "الكافيهات القريبة"}
             </h1>
             <p className="mt-1 text-sm font-bold text-riwaq-muted">
-              {getMapboxPublicToken()
-                ? "خريطة تفاعلية عبر Mapbox — عربي وتكبير تعاوني للجوال."
-                : "أضف NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN في البيئة لتفعيل خريطة Mapbox الحية."}
+              {googleMapsKey
+                ? "خريطة تفاعلية عبر Google Maps."
+                : "أضف NEXT_PUBLIC_GOOGLE_MAPS_API_KEY لتفعيل الخريطة الحية. بدونها ستظهر خريطة UI وهمية."}
             </p>
           </div>
           <button
@@ -138,8 +138,8 @@ export function NearbyCafesMap({ variant = "default", initialCafes }: NearbyCafe
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
-          {mapboxToken ? (
-            <CafeMapboxMap anchor={anchor} cafes={cafesForMap} />
+          {googleMapsKey ? (
+            <CafeGoogleMap anchor={anchor} cafes={cafesForMap} apiKey={googleMapsKey} />
           ) : (
             <FakeMap anchor={anchor} cafes={cafesForMap} bounds={bounds} />
           )}
@@ -236,7 +236,7 @@ function FakeMap({ anchor, cafes, bounds }: { anchor: { lat: number; lng: number
         ))}
         <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-black/45 px-3 py-2 text-[10px] font-extrabold text-white backdrop-blur-sm">
           <span>خريطة تفاعلية UI</span>
-          <span className="opacity-90">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</span>
+          <span className="opacity-90">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</span>
         </div>
       </div>
     </div>

@@ -38,6 +38,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard/campaigns", label: "الحملات", icon: Megaphone },
   { href: "/dashboard/community", label: "المجتمع", icon: MessagesSquare },
   { href: "/dashboard/map-insights", label: "رؤية الخريطة", icon: MapPinned },
+  { href: "/dashboard/cafe-profile", label: "ملف الكوفي", icon: Coffee },
   { href: "/dashboard/employees", label: "الموظفون", icon: Users },
   { href: "/dashboard/customers", label: "العملاء", icon: UserSquare2 },
   { href: "/dashboard/reports", label: "التقارير", icon: BarChart3 },
