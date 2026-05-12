@@ -1,6 +1,7 @@
 "use client";
 
-import { PLAN_LABELS_AR, platformSubscriptions } from "@/lib/mock/platform-admin";
+import { useEffect, useState } from "react";
+import { PLAN_LABELS_AR, platformSubscriptions, type PlatformSubscriptionRow } from "@/lib/mock/platform-admin";
 
 function fmt(n: number) {
   return n.toLocaleString("ar-SA");
@@ -10,7 +11,7 @@ function act(label: string) {
   return () => window.alert(`تجريبي: ${label}`);
 }
 
-const sections: { title: string; filter: (s: (typeof platformSubscriptions)[0]) => boolean }[] = [
+const sections: { title: string; filter: (s: PlatformSubscriptionRow) => boolean }[] = [
   { title: "الاشتراكات النشطة", filter: (s) => s.lifecycle === "active" },
   { title: "المنتهية", filter: (s) => s.lifecycle === "expired" },
   { title: "تنتهي خلال 7 أيام", filter: (s) => s.lifecycle === "expires_7d" },
@@ -20,12 +21,28 @@ const sections: { title: string; filter: (s: (typeof platformSubscriptions)[0]) 
 ];
 
 export default function PlatformAdminSubscriptionsPage() {
+  const [subscriptions, setSubscriptions] = useState(platformSubscriptions);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/platform-admin/subscriptions", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j: { ok?: boolean; data?: PlatformSubscriptionRow[] }) => {
+        if (cancelled || !j.ok || !Array.isArray(j.data)) return;
+        setSubscriptions(j.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="mx-auto max-w-7xl space-y-10">
       <p className="text-sm font-bold text-riwaq-muted">تجميع حسب دورة حياة الاشتراك — واجهة تحكم كاملة.</p>
 
       {sections.map(({ title, filter }) => {
-        const list = platformSubscriptions.filter(filter);
+        const list = subscriptions.filter(filter);
         if (list.length === 0) return null;
         return (
           <section key={title}>

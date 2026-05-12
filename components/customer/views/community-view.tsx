@@ -1,8 +1,8 @@
 import { Heart, Megaphone, Trophy } from "lucide-react";
 import { CommunityFeed } from "@/components/community/community-feed";
-import { communityPosts, communitySidebarMeta } from "@/lib/mock/community";
+import { communitySidebarMeta, type CommunityPost } from "@/lib/mock/community";
 
-export function CustomerCommunityView() {
+export function CustomerCommunityView({ posts }: { posts: CommunityPost[] }) {
   const c = communitySidebarMeta;
 
   return (
@@ -24,7 +24,7 @@ export function CustomerCommunityView() {
         </div>
       </section>
 
-      <CommunityFeed posts={communityPosts} />
+      <CommunityFeed posts={posts} />
 
       <section className="rounded-3xl border border-white/90 bg-white/88 p-5 shadow-lg ring-1 ring-riwaq-beige/90 sm:p-6">
         <h2 className="text-lg font-extrabold text-riwaq-brown">تصويت الكوفي</h2>

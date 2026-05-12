@@ -67,12 +67,20 @@ export type ReservationsTabId =
   | "ended"
   | "cancelled";
 
-export function ReservationsPageClient() {
+export function ReservationsPageClient({
+  initialReservations,
+  initialManagedTables,
+}: {
+  initialReservations?: ReservationRecord[];
+  initialManagedTables?: ManagedTable[];
+} = {}) {
   const [tick, setTick] = useState(() => Date.now());
   const [reservations, setReservations] = useState<ReservationRecord[]>(() =>
-    seedReservations(new Date()),
+    initialReservations !== undefined ? initialReservations : seedReservations(new Date()),
   );
-  const [tables, setTables] = useState<ManagedTable[]>(() => seedManagedTables(new Date()));
+  const [tables, setTables] = useState<ManagedTable[]>(() =>
+    initialManagedTables !== undefined ? initialManagedTables : seedManagedTables(new Date()),
+  );
 
   const [tab, setTab] = useState<ReservationsTabId>("all");
   const [search, setSearch] = useState("");

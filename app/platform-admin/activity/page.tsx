@@ -1,6 +1,21 @@
-import { ACTIVITY_TYPE_LABELS_AR, activityLog } from "@/lib/mock/platform-admin";
+import { ACTIVITY_TYPE_LABELS_AR, activityLog as mockActivityLog } from "@/lib/mock/platform-admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getSessionUser } from "@/lib/data/session-user";
+import { listPlatformActivityLogs } from "@/lib/data/platform-admin";
 
-export default function PlatformAdminActivityPage() {
+export default async function PlatformAdminActivityPage() {
+  let rows = mockActivityLog;
+  const session = await getSessionUser();
+  if (session?.role === "platform_admin") {
+    try {
+      const admin = createAdminClient();
+      const r = await listPlatformActivityLogs(admin);
+      rows = r.data;
+    } catch {
+      rows = mockActivityLog;
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <p className="text-sm font-bold text-riwaq-muted">سجل موحّد لحركات المنصة — حقول JSON قبل/بعد جاهزة للربط لاحقًا.</p>
@@ -22,7 +37,7 @@ export default function PlatformAdminActivityPage() {
             </tr>
           </thead>
           <tbody>
-            {activityLog.map((l) => (
+            {rows.map((l) => (
               <tr key={l.id} className="border-b border-riwaq-beige/70 font-bold last:border-0 hover:bg-riwaq-cream/30">
                 <td className="px-3 py-3 whitespace-nowrap">{l.actorName}</td>
                 <td className="px-3 py-3">{l.actorRole}</td>

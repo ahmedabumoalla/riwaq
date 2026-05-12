@@ -33,8 +33,10 @@ let productIdSeq = initialMenuProducts.length + 1;
 type StatusFilter = "all" | "available" | "unavailable";
 type PromoFilter = "all" | "yes" | "no";
 
-export function MenuPageClient() {
-  const [products, setProducts] = useState<MenuProduct[]>(initialMenuProducts);
+export function MenuPageClient({ initialProducts }: { initialProducts?: MenuProduct[] } = {}) {
+  const [products, setProducts] = useState<MenuProduct[]>(() =>
+    initialProducts !== undefined ? initialProducts : initialMenuProducts,
+  );
 
   const [tab, setTab] = useState<MenuTabId>("all");
   const [search, setSearch] = useState("");

@@ -1,11 +1,15 @@
 import {
   operationalAlerts,
-  overview,
+  overview as mockOverview,
   revenueSeries,
   socialTopCustomers,
-  subscriptionHealth,
-  topCafes,
+  subscriptionHealth as mockSubscriptionHealth,
+  topCafes as topCafesMock,
 } from "@/lib/mock/platform-admin";
+import { DataErrorState } from "@/components/ui/data-state";
+import { getSessionUser } from "@/lib/data/session-user";
+import { fetchInternalApi } from "@/lib/server/fetch-internal-api";
+import type { TopCafeRow } from "@/lib/mock/platform-admin";
 
 function fmt(n: number) {
   return n.toLocaleString("ar-SA", { maximumFractionDigits: n < 100 ? 1 : 0 });
@@ -38,8 +42,38 @@ function SectionTitle({ title, desc }: { title: string; desc?: string }) {
   );
 }
 
-export default function PlatformAdminOverviewPage() {
-  const o = overview;
+export default async function PlatformAdminOverviewPage() {
+  let o = mockOverview;
+  let subscriptionHealth = mockSubscriptionHealth;
+  let topCafesList: TopCafeRow[] = topCafesMock;
+  let dashboardError: string | null = null;
+  let invoiceCount = 0;
+
+  const session = await getSessionUser();
+  if (session?.role === "platform_admin") {
+    const res = await fetchInternalApi("/api/platform-admin/dashboard");
+    if (res.ok) {
+      const j = (await res.json()) as {
+        ok?: boolean;
+        overview?: typeof mockOverview;
+        subscriptionHealth?: typeof mockSubscriptionHealth;
+        topCafes?: TopCafeRow[];
+        invoiceCount?: number;
+        message?: string;
+      };
+      if (j.ok && j.overview && j.subscriptionHealth) {
+        o = { ...mockOverview, ...j.overview };
+        subscriptionHealth = j.subscriptionHealth;
+        topCafesList = j.topCafes?.length ? j.topCafes : topCafesMock;
+        invoiceCount = j.invoiceCount ?? 0;
+      } else {
+        dashboardError = j.message ?? "تعذر تحميل بيانات المنصة.";
+      }
+    } else {
+      dashboardError = "تعذر الاتصال بمسار /api/platform-admin/dashboard.";
+    }
+  }
+
   const maxStack = Math.max(
     ...revenueSeries.map((r) => r.subscriptions + r.content + r.fees),
     1
@@ -51,11 +85,19 @@ export default function PlatformAdminOverviewPage() {
         <p className="text-xs font-extrabold uppercase tracking-wide text-riwaq-caramel">Executive</p>
         <h2 className="mt-1 text-2xl font-extrabold text-riwaq-brown">نظرة عامة على المنصة</h2>
         <p className="mt-2 max-w-3xl text-sm font-bold leading-relaxed text-riwaq-muted">
-          مؤشرات موحّدة للكافيهات، الاشتراكات، GMV، المحتوى، والمكافآت — بيانات تجريبية للعرض التنفيذي.
+          مؤشرات من جداول Supabase للمسؤول (cafes، الاشتراكات، الفواتير، المنشورات، السجل، العملاء) — الرسوم التخطيطية أدناه
+          عيّنة بصرية.
         </p>
       </div>
 
+      {dashboardError ? (
+        <div className="px-1">
+          <DataErrorState message={dashboardError} />
+        </div>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="فواتير الاشتراك" value={fmt(invoiceCount)} sub="subscription_invoices" />
         <KpiCard label="إجمالي الكافيهات" value={fmt(o.totalCafes)} />
         <KpiCard label="الكافيهات النشطة" value={fmt(o.activeCafes)} />
         <KpiCard label="اشتراكات شهرية نشطة" value={fmt(o.activeMonthlySubscriptions)} />
@@ -86,7 +128,7 @@ export default function PlatformAdminOverviewPage() {
               </tr>
             </thead>
             <tbody>
-              {topCafes.map((c) => (
+              {topCafesList.map((c) => (
                 <tr key={c.id} className="border-b border-riwaq-beige/60 font-bold text-riwaq-brown last:border-0">
                   <td className="px-4 py-3 text-riwaq-caramel">{c.rank}</td>
                   <td className="px-4 py-3">{c.name}</td>

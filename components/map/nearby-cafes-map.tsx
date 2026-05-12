@@ -11,9 +11,11 @@ import { manualRegionCenters, mapCafes, type MapCafe } from "@/lib/mock/map-cafe
 
 type NearbyCafesMapProps = {
   variant?: "default" | "explore";
+  /** من الخادم عبر `listMapCafes`؛ إن وُجد يُستخدم بدل العينة الوهمية */
+  initialCafes?: MapCafe[] | null;
 };
 
-export function NearbyCafesMap({ variant = "default" }: NearbyCafesMapProps) {
+export function NearbyCafesMap({ variant = "default", initialCafes }: NearbyCafesMapProps) {
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,8 +48,10 @@ export function NearbyCafesMap({ variant = "default" }: NearbyCafesMapProps) {
     );
   }, []);
 
+  const baseCafes = initialCafes !== undefined && initialCafes !== null ? initialCafes : mapCafes;
+
   const withDistance = useMemo(() => {
-    const filtered = applyMapFilters(mapCafes, filters);
+    const filtered = applyMapFilters(baseCafes, filters);
     return filtered
       .map((c) => ({
         cafe: c,
@@ -55,7 +59,7 @@ export function NearbyCafesMap({ variant = "default" }: NearbyCafesMapProps) {
       }))
       .filter((x) => x.km <= filters.maxDistanceKm)
       .sort((a, b) => a.km - b.km);
-  }, [anchor, filters]);
+  }, [anchor, filters, baseCafes]);
 
   const bounds = useMemo(
     () => computeBounds([anchor, ...withDistance.map((x) => ({ lat: x.cafe.lat, lng: x.cafe.lng }))]),

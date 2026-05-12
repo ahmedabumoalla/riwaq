@@ -105,10 +105,10 @@ function buildQuickSimulatedOrder(id: string, now: Date): OpsOrder {
   };
 }
 
-export function OrdersPageClient() {
+export function OrdersPageClient({ initialOrders }: { initialOrders?: OpsOrder[] } = {}) {
   const simSeq = useRef(9109);
   const [orders, setOrders] = useState<OpsOrder[]>(() =>
-    createOrdersOperationsSeed(new Date()),
+    initialOrders !== undefined ? initialOrders : createOrdersOperationsSeed(new Date()),
   );
   const [tick, setTick] = useState(() => Date.now());
   const [toast, setToast] = useState<string | null>(null);

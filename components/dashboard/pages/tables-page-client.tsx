@@ -6,8 +6,10 @@ import { TableManagementSection } from "@/components/dashboard/reservations/tabl
 import { TableFloorModal } from "@/components/dashboard/reservations/table-floor-modal";
 import { seedManagedTables, type ManagedTable } from "@/lib/mock/reservations-center";
 
-export function TablesPageClient() {
-  const [tables, setTables] = useState<ManagedTable[]>(() => seedManagedTables(new Date()));
+export function TablesPageClient({ initialTables }: { initialTables?: ManagedTable[] } = {}) {
+  const [tables, setTables] = useState<ManagedTable[]>(() =>
+    initialTables !== undefined ? initialTables : seedManagedTables(new Date()),
+  );
   const [floorOpen, setFloorOpen] = useState(false);
 
   return (
