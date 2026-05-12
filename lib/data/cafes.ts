@@ -142,14 +142,14 @@ type CafeLocJoin = {
     | null;
 };
 
-/** خريطة العميل — من cafe_locations + cafés (RLS) */
+/** خريطة العميل — من cafe_locations + cafés (RLS) — حد أقصى للصفوف ثم إزالة تكرار cafe_id */
 export async function loadMapCafesFromLocations(supabase: SupabaseClient): Promise<DataLoad<MapCafe[]>> {
   try {
     const { data, error } = await supabase
       .from("cafe_locations")
       .select("id, lat, lng, label, cafe_id, cafes(id, name, slug, region, city, rating, review_count, map_extras)")
       .order("sort_order", { ascending: true })
-      .limit(200);
+      .limit(20);
 
     if (error) return { status: "error", message: error.message };
     if (!data?.length) return { status: "empty" };
@@ -174,8 +174,15 @@ export async function loadMapCafesFromLocations(supabase: SupabaseClient): Promi
     });
 
     const list = mapped.filter(Boolean) as MapCafe[];
-    if (!list.length) return { status: "empty" };
-    return { status: "ok", data: list };
+    const seen = new Set<string>();
+    const deduped: MapCafe[] = [];
+    for (const c of list) {
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      deduped.push(c);
+    }
+    if (!deduped.length) return { status: "empty" };
+    return { status: "ok", data: deduped };
   } catch (e) {
     return { status: "error", message: mapSupabaseError(e) };
   }
@@ -189,7 +196,7 @@ export async function listMapCafes(supabase: SupabaseClient): Promise<DataResult
       .select(
         "id, name, slug, region, city, lat, lng, rating, review_count, map_extras, branches(id, name, city, lat, lng, is_active)",
       )
-      .limit(80);
+      .limit(20);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };

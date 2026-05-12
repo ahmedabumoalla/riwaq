@@ -87,7 +87,7 @@ export async function listCommunityPosts(supabase: SupabaseClient): Promise<Data
         "id, author_id, cafe_id, post_kind, media_type, media_placeholder, body, hashtags, likes_count, shares_count, saves_count, views_count, review_status, reports_count, reward_eligible, reward_points_preview, product_name, table_label, created_at, profiles(full_name, role), cafes(name)",
       )
       .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(10);
 
     if (error) return { data: null, error };
     if (!posts?.length) return { data: [], error: null };
@@ -96,7 +96,9 @@ export async function listCommunityPosts(supabase: SupabaseClient): Promise<Data
     const { data: rawComments } = await supabase
       .from("community_post_comments")
       .select("id, post_id, body, created_at, profiles(full_name, role)")
-      .in("post_id", ids);
+      .in("post_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(10);
 
     const byPost = new Map<string, CommunityComment[]>();
     for (const c of rawComments ?? []) {
@@ -131,7 +133,9 @@ async function hydrateCommunityPosts(supabase: SupabaseClient, posts: unknown[])
   const { data: rawComments } = await supabase
     .from("community_post_comments")
     .select("id, post_id, body, created_at, profiles(full_name, role)")
-    .in("post_id", ids);
+    .in("post_id", ids)
+    .order("created_at", { ascending: false })
+    .limit(10);
 
   const byPost = new Map<string, CommunityComment[]>();
   for (const c of rawComments ?? []) {
@@ -162,7 +166,7 @@ export async function loadApprovedCommunityPosts(supabase: SupabaseClient): Prom
       .select(POST_SELECT)
       .eq("review_status", "approved")
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(10);
     if (error) return { status: "error", message: error.message };
     if (!posts?.length) return { status: "empty" };
     return { status: "ok", data: await hydrateCommunityPosts(supabase, posts) };
@@ -178,7 +182,7 @@ export async function loadCommunityPostsForCafe(supabase: SupabaseClient, cafeId
       .select(POST_SELECT)
       .eq("cafe_id", cafeId)
       .order("created_at", { ascending: false })
-      .limit(80);
+      .limit(10);
     if (error) return { status: "error", message: error.message };
     if (!posts?.length) return { status: "empty" };
     return { status: "ok", data: await hydrateCommunityPosts(supabase, posts) };
@@ -187,16 +191,30 @@ export async function loadCommunityPostsForCafe(supabase: SupabaseClient, cafeId
   }
 }
 
+export type FetchCommunityPostsForAdminOpts = {
+  limit?: number;
+  offset?: number;
+};
+
 /** لمسار إدارة المنصة (service role) — يرمي عند الخطأ */
-export async function fetchCommunityPostsForAdmin(admin: SupabaseClient): Promise<CommunityPost[]> {
-  const { data: posts, error } = await admin
+export async function fetchCommunityPostsForAdmin(
+  admin: SupabaseClient,
+  opts?: FetchCommunityPostsForAdminOpts,
+): Promise<{ posts: CommunityPost[]; hasMore: boolean }> {
+  const limit = Math.min(100, Math.max(1, opts?.limit ?? 10));
+  const offset = Math.max(0, opts?.offset ?? 0);
+
+  const { data: raw, error } = await admin
     .from("community_posts")
     .select(POST_SELECT)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .range(offset, offset + limit);
   if (error) throw error;
-  if (!posts?.length) return [];
-  return hydrateCommunityPosts(admin, posts);
+  const hasMore = (raw?.length ?? 0) > limit;
+  const pageRows = hasMore ? (raw ?? []).slice(0, limit) : (raw ?? []);
+  if (!pageRows.length) return { posts: [], hasMore: false };
+  const hydrated = await hydrateCommunityPosts(admin, pageRows);
+  return { posts: hydrated, hasMore };
 }
 
 export async function addCommunityPostComment(

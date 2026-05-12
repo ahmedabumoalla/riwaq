@@ -6,15 +6,16 @@ import { activityLog as mockActivity, type ActivityLogRow, type ActivityType } f
 export async function listActivityLogsForUser(
   supabase: SupabaseClient,
   userId: string,
-  limit = 40,
+  limit = 30,
 ): Promise<DataResult<ActivityLogRow[]>> {
+  const cap = Math.min(30, Math.max(1, limit));
   return withMockFallback("activity.user", mockActivity.slice(0, 5), async () => {
     const { data, error } = await supabase
       .from("platform_activity_logs")
       .select("id, activity_type, before_json, after_json, ip, device, created_at")
       .eq("actor_id", userId)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(cap);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: [], error: null };

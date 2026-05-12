@@ -1,11 +1,6 @@
 import { LandingHome } from "@/components/landing/landing-home";
-import { createClient } from "@/lib/supabase/server";
 
-export default async function Home() {
-  const supabase = await createClient();
-
-  await supabase.auth.getUser();
-
+export default function Home() {
   return (
     <main className="relative">
       <LandingHome />

@@ -10,9 +10,9 @@ export async function listCafeTables(supabase: SupabaseClient, branchId: string 
   const mock = seedManagedTables(new Date());
 
   return withMockFallback("tables.list", mock, async () => {
-    let q = supabase.from("cafe_tables").select("id, label, capacity, floor_label, is_active").limit(200);
+    let q = supabase.from("cafe_tables").select("id, label, capacity, floor_label, is_active");
     if (branchId) q = q.eq("branch_id", branchId);
-    const { data, error } = await q;
+    const { data, error } = await q.order("label", { ascending: true }).limit(20);
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };
 

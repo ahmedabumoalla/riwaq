@@ -32,38 +32,21 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  const pathname = request.nextUrl.pathname;
+  const loginUrl = new URL("/auth/login", request.url);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  let cachedRole: string | null | undefined = undefined;
-
-  async function getRole() {
-    if (cachedRole !== undefined) return cachedRole;
-    if (!user) {
-      cachedRole = null;
-      return cachedRole;
-    }
-
-    const { data } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    cachedRole = data?.role ?? null;
-    return cachedRole;
+  if (!user) {
+    return NextResponse.redirect(loginUrl);
   }
 
-  // platform admin
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const role = profile?.role ?? null;
+
   if (pathname.startsWith("/platform-admin")) {
-    if (!user) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
-    }
-
-    const role = await getRole();
-
     if (role === "platform_admin") {
       return response;
     }
@@ -79,16 +62,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/customer", request.url));
   }
 
-  // dashboard (كافيه — ليس مسؤول المنصة)
   if (pathname.startsWith("/dashboard")) {
-    if (!user) {
-      return NextResponse.redirect(
-        new URL("/auth/login", request.url)
-      );
-    }
-
-    const role = await getRole();
-
     if (!role) {
       return response;
     }
@@ -98,32 +72,19 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!isCafeDashboardRole(role)) {
-      return NextResponse.redirect(
-        new URL("/customer", request.url)
-      );
+      return NextResponse.redirect(new URL("/customer", request.url));
     }
 
     return response;
   }
 
-  // customer
   if (pathname.startsWith("/customer")) {
-    if (!user) {
-      return NextResponse.redirect(
-        new URL("/auth/login", request.url)
-      );
-    }
-
-    const role = await getRole();
-
     if (!role) {
       return response;
     }
 
     if (isStaffRole(role)) {
-      return NextResponse.redirect(
-        new URL(redirectByRole(role), request.url)
-      );
+      return NextResponse.redirect(new URL(redirectByRole(role), request.url));
     }
 
     return response;
@@ -133,9 +94,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/customer/:path*",
-    "/platform-admin/:path*",
-  ],
+  matcher: ["/dashboard/:path*", "/customer/:path*", "/platform-admin/:path*"],
 };

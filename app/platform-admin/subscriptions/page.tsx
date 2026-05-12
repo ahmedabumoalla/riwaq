@@ -24,8 +24,9 @@ export default function PlatformAdminSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState(platformSubscriptions);
 
   useEffect(() => {
+    const ac = new AbortController();
     let cancelled = false;
-    fetch("/api/platform-admin/subscriptions", { credentials: "include" })
+    fetch("/api/platform-admin/subscriptions", { credentials: "include", signal: ac.signal })
       .then((r) => r.json())
       .then((j: { ok?: boolean; data?: PlatformSubscriptionRow[] }) => {
         if (cancelled || !j.ok || !Array.isArray(j.data)) return;
@@ -34,6 +35,7 @@ export default function PlatformAdminSubscriptionsPage() {
       .catch(() => {});
     return () => {
       cancelled = true;
+      ac.abort();
     };
   }, []);
 

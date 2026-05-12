@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataEmptyState, DataErrorState } from "@/components/ui/data-state";
 import { reviewStatusLabelsAr, type ReviewStatus } from "@/lib/mock/community";
 import type { CommunityPost } from "@/lib/mock/community";
+
+const PAGE_SIZE = 10;
 
 const tabs: { id: "all" | ReviewStatus | "recent" | "top_views" | "top_engagement" | "reported"; label: string }[] = [
   { id: "all", label: "الكل" },
@@ -20,36 +22,59 @@ const tabs: { id: "all" | ReviewStatus | "recent" | "top_views" | "top_engagemen
 export function PlatformAdminCommunityModerationClient() {
   const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("all");
   const [posts, setPosts] = useState<CommunityPost[] | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchPage = useCallback(async (offset: number, signal?: AbortSignal) => {
+    const r = await fetch(
+      `/api/platform-admin/community-posts?limit=${PAGE_SIZE}&offset=${offset}`,
+      signal ? { credentials: "include", signal } : { credentials: "include" },
+    );
+    const j = (await r.json()) as {
+      ok?: boolean;
+      posts?: CommunityPost[];
+      hasMore?: boolean;
+      message?: string;
+    };
+    if (!r.ok || !j.ok) throw new Error(j.message ?? "تعذر التحميل");
+    return { list: j.posts ?? [], more: Boolean(j.hasMore) };
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/platform-admin/community-posts", { credentials: "include" })
-      .then(async (r) => {
-        const j = (await r.json()) as { ok?: boolean; posts?: CommunityPost[]; message?: string };
-        if (!r.ok || !j.ok) throw new Error(j.message ?? "تعذر التحميل");
-        return j.posts ?? [];
+    const ac = new AbortController();
+    setLoading(true);
+    setPosts(null);
+    setHasMore(false);
+    fetchPage(0, ac.signal)
+      .then(({ list, more }) => {
+        setPosts(list);
+        setHasMore(more);
+        setError(null);
       })
-      .then((list) => {
-        if (!cancelled) {
-          setPosts(list);
-          setError(null);
-        }
-      })
-      .catch((e: Error) => {
-        if (!cancelled) {
-          setError(e.message);
-          setPosts(null);
-        }
+      .catch((e: unknown) => {
+        if (ac.signal.aborted) return;
+        setError(e instanceof Error ? e.message : "تعذر التحميل");
+        setPosts(null);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!ac.signal.aborted) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => ac.abort();
+  }, [fetchPage]);
+
+  const loadMore = useCallback(() => {
+    if (!posts || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetchPage(posts.length)
+      .then(({ list, more }) => {
+        setPosts((prev) => (prev ? [...prev, ...list] : list));
+        setHasMore(more);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  }, [posts, hasMore, loadingMore, fetchPage]);
 
   const filtered = useMemo(() => {
     if (!posts) return [];
@@ -60,13 +85,16 @@ export function PlatformAdminCommunityModerationClient() {
     else if (tab === "flagged" || tab === "reported") list = list.filter((p) => p.reportsCount > 0);
     else if (tab === "recent") list = [...list].reverse();
     else if (tab === "top_views") list.sort((a, b) => b.views - a.views);
-    else if (tab === "top_engagement") list.sort((a, b) => b.likes + b.comments.length - (a.likes + a.comments.length));
+    else if (tab === "top_engagement")
+      list.sort((a, b) => b.likes + b.comments.length - (a.likes + a.comments.length));
     return list;
   }, [tab, posts]);
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl min-w-0 px-4 py-16 text-center text-sm font-bold text-riwaq-muted">جاري التحميل…</div>
+      <div className="mx-auto max-w-7xl min-w-0 px-4 py-16 text-center text-sm font-bold text-riwaq-muted">
+        جاري التحميل…
+      </div>
     );
   }
 
@@ -100,7 +128,9 @@ export function PlatformAdminCommunityModerationClient() {
             type="button"
             onClick={() => setTab(t.id)}
             className={`shrink-0 rounded-2xl px-4 py-2 text-xs font-extrabold transition ${
-              tab === t.id ? "bg-riwaq-brown text-white shadow-md" : "bg-white/90 text-riwaq-muted ring-1 ring-riwaq-beige hover:bg-riwaq-cream"
+              tab === t.id
+                ? "bg-riwaq-brown text-white shadow-md"
+                : "bg-white/90 text-riwaq-muted ring-1 ring-riwaq-beige hover:bg-riwaq-cream"
             }`}
           >
             {t.label}
@@ -144,6 +174,19 @@ export function PlatformAdminCommunityModerationClient() {
           </tbody>
         </table>
       </div>
+
+      {hasMore ? (
+        <div className="flex justify-center pb-4">
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="rounded-2xl border border-riwaq-beige bg-white/90 px-5 py-2 text-xs font-extrabold text-riwaq-brown shadow-sm ring-1 ring-riwaq-beige/80 disabled:opacity-50"
+          >
+            {loadingMore ? "جاري التحميل…" : "تحميل المزيد"}
+          </button>
+        </div>
+      ) : null}
 
       <p className="text-center text-xs font-bold text-riwaq-muted md:hidden">لعرض الجدول كاملًا استخدم شاشة أوسع.</p>
     </div>

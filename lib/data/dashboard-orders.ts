@@ -69,13 +69,17 @@ export async function loadDashboardOrders(supabase: SupabaseClient, branchIds: s
       .select("id, status, total, created_at, branch_id, customer_id, meta")
       .in("branch_id", branchIds)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(20);
 
     if (oErr) return { status: "error", message: oErr.message };
     if (!orders?.length) return { status: "empty" };
 
     const orderIds = orders.map((o: { id: string }) => o.id);
-    const { data: items, error: iErr } = await supabase.from("order_items").select("*").in("order_id", orderIds);
+    const { data: items, error: iErr } = await supabase
+      .from("order_items")
+      .select("*")
+      .in("order_id", orderIds)
+      .limit(200);
     if (iErr) return { status: "error", message: iErr.message };
 
     const byOrder = new Map<string, Record<string, unknown>[]>();
@@ -90,7 +94,11 @@ export async function loadDashboardOrders(supabase: SupabaseClient, branchIds: s
     const custIds = [...new Set(orders.map((o: { customer_id: string | null }) => o.customer_id).filter(Boolean))] as string[];
     const profMap = new Map<string, { full_name: string | null; phone: string | null }>();
     if (custIds.length) {
-      const { data: profs, error: pErr } = await supabase.from("profiles").select("id, full_name, phone").in("id", custIds);
+      const { data: profs, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone")
+        .in("id", custIds)
+        .limit(20);
       if (pErr) return { status: "error", message: pErr.message };
       for (const p of profs ?? []) {
         const row = p as { id: string; full_name: string | null; phone: string | null };

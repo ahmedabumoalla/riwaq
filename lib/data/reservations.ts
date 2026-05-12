@@ -7,9 +7,13 @@ export async function listReservationRows(
   branchId: string | null,
 ): Promise<DataResult<ReservationRow[]>> {
   return withMockFallback("reservations.list", initialReservationRows, async () => {
-    let q = supabase.from("reservations").select("id, status, party_size, starts_at, table_label, meta").limit(100);
+    let q = supabase
+      .from("reservations")
+      .select("id, status, party_size, starts_at, table_label, meta")
+      .order("starts_at", { ascending: true })
+      .limit(20);
     if (branchId) q = q.eq("branch_id", branchId);
-    const { data, error } = await q.order("starts_at", { ascending: true });
+    const { data, error } = await q;
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };
 

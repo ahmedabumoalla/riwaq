@@ -8,74 +8,96 @@ export type PlatformAdminDashboardPayload = {
   subscriptionHealth: SubscriptionHealthCounts;
   topCafes: TopCafeRow[];
   invoiceCount: number;
+  topCafesPage: number;
+  topCafesPageSize: number;
 };
 
-export async function buildPlatformAdminDashboard(admin: SupabaseClient): Promise<PlatformAdminDashboardPayload> {
+export type BuildPlatformAdminDashboardOpts = {
+  /** صفحة جدول أحدث الكافيهات (1-based) */
+  topCafesPage?: number;
+  topCafesPageSize?: number;
+};
+
+export async function buildPlatformAdminDashboard(
+  admin: SupabaseClient,
+  opts?: BuildPlatformAdminDashboardOpts,
+): Promise<PlatformAdminDashboardPayload> {
+  const topCafesPage = Math.max(1, Math.floor(opts?.topCafesPage ?? 1));
+  const topCafesPageSize = Math.min(50, Math.max(1, Math.floor(opts?.topCafesPageSize ?? 12)));
+  const from = (topCafesPage - 1) * topCafesPageSize;
+  const to = from + topCafesPageSize - 1;
+
   const [
     cafesHead,
-    subsHead,
     invHead,
     postsHead,
     logsHead,
     custHead,
     ordersHead,
     resHead,
-    subsRows,
     cafeList,
+    mrrPrices,
+    cntActive,
+    cntExpired,
+    cntExpires7d,
+    cntPastDue,
+    cntPaused,
+    cntTrial,
   ] = await Promise.all([
     admin.from("cafes").select("id", { count: "exact", head: true }),
-    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }),
     admin.from("subscription_invoices").select("id", { count: "exact", head: true }),
     admin.from("community_posts").select("id", { count: "exact", head: true }),
     admin.from("platform_activity_logs").select("id", { count: "exact", head: true }),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
     admin.from("orders").select("id", { count: "exact", head: true }),
     admin.from("reservations").select("id", { count: "exact", head: true }),
-    admin.from("cafe_subscriptions").select("lifecycle, monthly_price"),
-    admin.from("cafes").select("id, name").order("created_at", { ascending: false }).limit(12),
+    admin.from("cafes").select("id, name").order("created_at", { ascending: false }).range(from, to),
+    admin.from("cafe_subscriptions").select("monthly_price").eq("lifecycle", "active").limit(5000),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "active"),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "expired"),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "expires_7d"),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "past_due"),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "paused"),
+    admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", "trial"),
   ]);
 
   const errs = [
     cafesHead.error,
-    subsHead.error,
     invHead.error,
     postsHead.error,
     logsHead.error,
     custHead.error,
     ordersHead.error,
     resHead.error,
-    subsRows.error,
     cafeList.error,
+    mrrPrices.error,
+    cntActive.error,
+    cntExpired.error,
+    cntExpires7d.error,
+    cntPastDue.error,
+    cntPaused.error,
+    cntTrial.error,
   ].filter(Boolean);
   if (errs.length) {
     throw new Error(String(errs[0]?.message ?? errs[0]));
   }
 
   const totalCafes = cafesHead.count ?? 0;
-  const activeSubsCount =
-    (subsRows.data as { lifecycle: string }[] | null)?.filter((r) => r.lifecycle === "active").length ?? 0;
-  const expiredSubsCount =
-    (subsRows.data as { lifecycle: string }[] | null)?.filter((r) => r.lifecycle === "expired").length ?? 0;
+  const activeSubsCount = cntActive.count ?? 0;
+  const expiredSubsCount = cntExpired.count ?? 0;
   const mrr =
-    (subsRows.data as { lifecycle: string; monthly_price: number | string }[] | null)
-      ?.filter((r) => r.lifecycle === "active")
-      .reduce((s, r) => s + Number(r.monthly_price ?? 0), 0) ?? 0;
+    (mrrPrices.data as { monthly_price: number | string }[] | null)?.reduce(
+      (s, r) => s + Number(r.monthly_price ?? 0),
+      0,
+    ) ?? 0;
 
   const health: SubscriptionHealthCounts = {
-    active: 0,
-    expiringSoon: 0,
-    pastDue: 0,
-    paused: 0,
-    trial: 0,
+    active: activeSubsCount,
+    expiringSoon: cntExpires7d.count ?? 0,
+    pastDue: cntPastDue.count ?? 0,
+    paused: cntPaused.count ?? 0,
+    trial: cntTrial.count ?? 0,
   };
-  for (const row of (subsRows.data ?? []) as { lifecycle: string }[]) {
-    const l = row.lifecycle;
-    if (l === "active") health.active += 1;
-    else if (l === "expires_7d") health.expiringSoon += 1;
-    else if (l === "past_due") health.pastDue += 1;
-    else if (l === "paused") health.paused += 1;
-    else if (l === "trial") health.trial += 1;
-  }
 
   const overview: PlatformAdminOverview = {
     totalCafes,
@@ -100,7 +122,7 @@ export async function buildPlatformAdminDashboard(admin: SupabaseClient): Promis
     sales: 0,
     orders: 0,
     views: 0,
-    rank: i + 1,
+    rank: from + i + 1,
   }));
 
   return {
@@ -108,5 +130,7 @@ export async function buildPlatformAdminDashboard(admin: SupabaseClient): Promis
     subscriptionHealth: health,
     topCafes,
     invoiceCount: invHead.count ?? 0,
+    topCafesPage,
+    topCafesPageSize,
   };
 }

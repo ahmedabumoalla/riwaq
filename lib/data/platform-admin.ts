@@ -45,36 +45,34 @@ export async function getPlatformAdminOverview(admin: SupabaseClient): Promise<D
 
 export async function getSubscriptionHealthCounts(admin: SupabaseClient): Promise<DataResult<SubscriptionHealthCounts>> {
   return withMockFallback("platformAdmin.subHealth", mockSubscriptionHealth, async () => {
-    const { data, error } = await admin.from("cafe_subscriptions").select("lifecycle");
-    if (error) return { data: null, error };
-    const counts: SubscriptionHealthCounts = {
-      active: 0,
-      expiringSoon: 0,
-      pastDue: 0,
-      paused: 0,
-      trial: 0,
-    };
-    if (!data?.length) return { data: counts, error: null };
+    const lifecycleKeys = ["active", "expires_7d", "past_due", "paused", "trial"] as const;
+    const results = await Promise.all(
+      lifecycleKeys.map((lc) =>
+        admin.from("cafe_subscriptions").select("id", { count: "exact", head: true }).eq("lifecycle", lc),
+      ),
+    );
+    const errs = results.map((r) => r.error).filter(Boolean);
+    if (errs.length) return { data: null, error: errs[0] };
 
-    for (const row of data as { lifecycle: string }[]) {
-      const l = row.lifecycle;
-      if (l === "active") counts.active += 1;
-      else if (l === "expires_7d") counts.expiringSoon += 1;
-      else if (l === "past_due") counts.pastDue += 1;
-      else if (l === "paused") counts.paused += 1;
-      else if (l === "trial") counts.trial += 1;
-    }
+    const counts: SubscriptionHealthCounts = {
+      active: results[0]?.count ?? 0,
+      expiringSoon: results[1]?.count ?? 0,
+      pastDue: results[2]?.count ?? 0,
+      paused: results[3]?.count ?? 0,
+      trial: results[4]?.count ?? 0,
+    };
     return { data: counts, error: null };
   });
 }
 
-export async function listPlatformActivityLogs(admin: SupabaseClient, limit = 80): Promise<DataResult<ActivityLogRow[]>> {
+export async function listPlatformActivityLogs(admin: SupabaseClient, limit = 30): Promise<DataResult<ActivityLogRow[]>> {
+  const cap = Math.min(30, Math.max(1, limit));
   return withMockFallback("platformAdmin.activity", mockActivity, async () => {
     const { data, error } = await admin
       .from("platform_activity_logs")
       .select("id, actor_id, cafe_id, branch_id, activity_type, before_json, after_json, ip, device, created_at")
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(cap);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: [], error: null };
@@ -86,13 +84,15 @@ export async function listPlatformActivityLogs(admin: SupabaseClient, limit = 80
 
     const profRes =
       actorIds.length > 0
-        ? await admin.from("profiles").select("id, full_name, role").in("id", actorIds)
+        ? await admin.from("profiles").select("id, full_name, role").in("id", actorIds).limit(20)
         : { data: [] as { id: string; full_name: string | null; role: string | null }[], error: null };
     const cafeRes =
-      cafeIds.length > 0 ? await admin.from("cafes").select("id, name").in("id", cafeIds) : { data: [] as { id: string; name: string | null }[], error: null };
+      cafeIds.length > 0
+        ? await admin.from("cafes").select("id, name").in("id", cafeIds).limit(20)
+        : { data: [] as { id: string; name: string | null }[], error: null };
     const branchRes =
       branchIds.length > 0
-        ? await admin.from("branches").select("id, name").in("id", branchIds)
+        ? await admin.from("branches").select("id, name").in("id", branchIds).limit(20)
         : { data: [] as { id: string; name: string | null }[], error: null };
 
     const profMap = new Map((profRes.data ?? []).map((p) => [p.id, p]));

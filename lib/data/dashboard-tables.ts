@@ -14,7 +14,8 @@ export async function loadDashboardTables(supabase: SupabaseClient, branchIds: s
       .from("cafe_tables")
       .select("id, label, capacity, floor_label, is_active, branch_id")
       .in("branch_id", branchIds)
-      .order("label", { ascending: true });
+      .order("label", { ascending: true })
+      .limit(20);
 
     if (error) return { status: "error", message: error.message };
     if (!data?.length) return { status: "empty" };
@@ -45,7 +46,12 @@ export async function loadTableLabelToIdMap(
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   if (!branchIds.length) return map;
-  const { data } = await supabase.from("cafe_tables").select("id, label, branch_id").in("branch_id", branchIds);
+  const { data } = await supabase
+    .from("cafe_tables")
+    .select("id, label, branch_id")
+    .in("branch_id", branchIds)
+    .order("label", { ascending: true })
+    .limit(20);
   for (const t of data ?? []) {
     const row = t as { id: string; label: string; branch_id: string };
     map.set(`${row.branch_id}:${row.label}`, row.id);

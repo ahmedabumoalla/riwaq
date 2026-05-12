@@ -21,12 +21,13 @@ export async function listCafeSubscriptions(supabase: SupabaseClient): Promise<D
       .from("cafe_subscriptions")
       .select("id, cafe_id, plan, monthly_price, starts_at, ends_at, lifecycle, payment_status, notes")
       .order("ends_at", { ascending: true })
-      .limit(200);
+      .limit(20);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: [], error: null };
 
-    const { data: cafes } = await supabase.from("cafes").select("id, name");
+    const cafeIds = [...new Set((data as { cafe_id: string }[]).map((r) => r.cafe_id))];
+    const { data: cafes } = await supabase.from("cafes").select("id, name").in("id", cafeIds).limit(20);
     const nameById = new Map((cafes ?? []).map((c: { id: string; name: string }) => [c.id, c.name]));
 
     const mapped: PlatformSubscriptionRow[] = (data as Record<string, unknown>[]).map((r) => {

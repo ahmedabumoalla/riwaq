@@ -27,7 +27,7 @@ export async function listLoyaltyCustomers(supabase: SupabaseClient): Promise<Da
       .select("id, full_name, phone, loyalty_points, updated_at")
       .eq("role", "customer")
       .order("loyalty_points", { ascending: false })
-      .limit(50);
+      .limit(20);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };

@@ -1,11 +1,13 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { PlatformRole } from "@/lib/types/roles";
 
 export type SessionUser = { id: string; email: string | undefined; role: PlatformRole | null };
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+/** طلب واحد = استعلام واحد لـ profiles.role (React cache) */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,4 +20,4 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     email: user.email ?? undefined,
     role: (profile?.role as PlatformRole | null) ?? null,
   };
-}
+});

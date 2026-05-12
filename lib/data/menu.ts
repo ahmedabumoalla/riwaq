@@ -50,7 +50,7 @@ export async function loadMenuForCafe(supabase: SupabaseClient, cafeId: string):
       .select("id, name, description, price, calories, ingredients, promo_label, loyalty_points, is_active")
       .eq("cafe_id", cafeId)
       .order("sort_order", { ascending: true })
-      .limit(500);
+      .limit(30);
     if (error) return { status: "error", message: error.message };
     if (!data?.length) return { status: "empty" };
     return { status: "ok", data: data.map((r) => rowToMenuProduct(r as never)) };
@@ -64,9 +64,11 @@ export async function listMenuProducts(
   cafeId?: string | null,
 ): Promise<DataResult<MenuProduct[]>> {
   return withMockFallback("menu.list", initialMenuProducts, async () => {
-    let q = supabase.from("menu_items").select("id, name, description, price, calories, ingredients, promo_label, loyalty_points, is_active").limit(200);
+    let q = supabase
+      .from("menu_items")
+      .select("id, name, description, price, calories, ingredients, promo_label, loyalty_points, is_active");
     if (cafeId) q = q.eq("cafe_id", cafeId);
-    const { data, error } = await q;
+    const { data, error } = await q.order("sort_order", { ascending: true }).limit(30);
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };
     return { data: data.map((r) => rowToMenuProduct(r as never)), error: null };

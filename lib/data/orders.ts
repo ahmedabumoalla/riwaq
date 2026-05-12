@@ -9,7 +9,7 @@ export async function listCustomerOrders(supabase: SupabaseClient, customerId: s
       .select("id, status, total, created_at, meta")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(20);
 
     if (error) return { data: null, error };
     if (!data?.length) return { data: null, error: null };

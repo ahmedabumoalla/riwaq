@@ -57,7 +57,7 @@ export async function loadDashboardReservations(
       .select("id, status, party_size, starts_at, table_label, meta, created_at, branch_id, customer_id")
       .in("branch_id", branchIds)
       .order("starts_at", { ascending: true })
-      .limit(120);
+      .limit(20);
 
     if (error) return { status: "error", message: error.message };
     if (!rows?.length) return { status: "empty" };
